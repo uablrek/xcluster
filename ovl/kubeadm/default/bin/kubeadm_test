@@ -154,6 +154,14 @@ cmd_tcase_deployment() {
 	$kubectl apply -f $f || tdie "kubectl apply"
 	test_deployment $1 120
 }
+##   bogus_default_route
+##     Set a default route to dev lo
+cmd_tcase_bogus_default_route() {
+	# to test https://github.com/kubernetes/kubeadm/issues/3102
+	tcase "Set a default route to dev lo"
+	ip ro replace default dev eth1
+	ip -6 ro replace default dev eth1
+}
 
 . /etc/profile
 . /usr/lib/xctest

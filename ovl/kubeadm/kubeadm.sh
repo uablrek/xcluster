@@ -28,6 +28,15 @@ echo "$1" | grep -qi "^help\|-h" && help
 log() {
 	echo "$*" >&2
 }
+eset() {
+	local e k
+	for e in $@; do
+		k=$(echo $e | cut -d= -f1)
+		opts="$opts|$k"
+		test -n "$(eval echo \$$k)" || eval $e
+		test "$(eval echo \$$k)" = "?" && eval $e
+	done
+}
 
 ##  env
 ##    Print environment.
@@ -35,20 +44,20 @@ log() {
 cmd_env() {
 	test "$envset" = "yes" && return 0
 	envset=yes
-	test -n "$__nvm" || __nvm=4
-	test -n "$__nrouters" || __nrouters=1
-	test -n "$__k8sver" || __k8sver=v1.30.0
-	export __k8sver
-	test -n "$__cni" || __cni=bridge
-	export __mem1=2048
-	export __mem=1536
-	export xcluster_DOMAIN=cluster.local
-	test -n "$PREFIX" || PREFIX=fd00:
+	eset \
+		__nvm=4 \
+		__nrouters=1 \
+		__k8sver=v1.30.0 \
+		__cni=bridge \
+		__mem1=2048 \
+		__mem=1536 \
+		__cni=bridge \
+		xcluster_DOMAIN=cluster.local \
+		PREFIX=fd00:
+	export __mem1 __mem xcluster_DOMAIN __k8sver
 	export xcluster_PREFIX=$PREFIX
-	export xcluster_DOMAIN=cluster.local
 	if test "$cmd" = "env"; then
-		local opt="k8sver|nvm|nrouters|cni|mem|mem1"
-		set | grep -E "^(__($opt)|xcluster_.*)="
+		set | grep -E "^($opts)="
 		exit 0
 	fi
 
@@ -58,6 +67,7 @@ cmd_env() {
 	test -n "$KUBERNETESD" || \
 		export KUBERNETESD=$HOME/tmp/kubernetes/kubernetes-$__k8sver/server/bin	
 	kubeadm=$KUBERNETESD/kubeadm
+	test -n "$long_opts" && export $long_opts
 }
 ##   cache_images
 ##     Download the K8s release images to the local private registry.
@@ -130,7 +140,7 @@ test_start_empty() {
 ##     Start a cluster and install K8s using kubeadm
 test_start() {
 	test_start_empty $@
-
+	#otcwp bogus_default_route
 	otc 1 "pull_images $__k8sver"
 	otc 1 "init_dual_stack $__k8sver"
 	otc 1 check_namespaces
@@ -150,7 +160,6 @@ test_start() {
 ##     Start with a tserver app. This requires ovl/k8s-test
 test_start_app() {
 	$XCLUSTER ovld k8s-test > /dev/null 2>&1 || tdie "No ovl/k8s-test"
-	__nrouters=1
 	__hugep=yes
 	export KUBEADM_TEST=yes
 	test_start k8s-test mconnect $@
@@ -162,6 +171,7 @@ test_start_app() {
 }
 
 ##
+__mem=?; __mem1=?; __nvm=?  # set these in cmd_env
 . $($XCLUSTER ovld test)/default/usr/lib/xctest
 indent=''
 
