@@ -102,7 +102,7 @@ cmd_env() {
 		fi
 	fi
 
-	eset __kver=linux-6.10
+	eset __kver=linux-6.14.2
 	eset \
 		__kobj=$XCLUSTER_HOME/obj-$__kver \
 		__kcfg=$dir/config/$__kver \
